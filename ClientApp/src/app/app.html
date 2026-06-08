@@ -1,0 +1,33 @@
+<mat-toolbar color="primary">
+  <a routerLink="/" mat-button class="brand">
+    <mat-icon>school</mat-icon>
+    ScholarAlign
+  </a>
+
+  <span class="spacer"></span>
+
+  <a routerLink="/scholarships" mat-button routerLinkActive="active-link">Scholarships</a>
+
+  @if (auth.isAuthenticated()) {
+    <a routerLink="/my-applications" mat-button routerLinkActive="active-link">My Applications</a>
+    <a routerLink="/admin" mat-button routerLinkActive="active-link">Admin</a>
+
+    <button mat-button [matMenuTriggerFor]="userMenu" class="user-btn">
+      <mat-icon>account_circle</mat-icon>
+      <span class="user-email">{{ auth.user()?.email }}</span>
+      <mat-icon>arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Sign out
+      </button>
+    </mat-menu>
+  } @else {
+    <a routerLink="/login" mat-button>Sign In</a>
+  }
+</mat-toolbar>
+
+<main class="content">
+  <router-outlet />
+</main>
