@@ -1,13 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ScholarAlign.Models;
 
-public class Organization
+public class Organization : AuditableEntity
 {
-    public int Id { get; set; }
-    public required string Name { get; set; }
-    public string? Description { get; set; }
-    public string? Website { get; set; }
-    public string? ContactEmail { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public ICollection<Scholarship> Scholarships { get; set; } = [];
+    public Guid OrganizationId { get; set; }
+    [MaxLength(200)]
+    public string OrganizationName { get; set; } = string.Empty;
+    [MaxLength(256)]
+    public string Contact { get; set; } = string.Empty;
+    [MaxLength(256)]
+    public string WebSite { get; set; } = string.Empty;
+    public bool IsPublic { get; set; }
 }
