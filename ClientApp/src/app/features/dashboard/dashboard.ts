@@ -67,14 +67,14 @@ import { Question } from '../../core/models/question.model';
                   <mat-form-field appearance="outline" class="answer-field">
                     <mat-label>Your answer</mat-label>
                     <input matInput type="number" step="1"
-                           [ngModel]="answerText()" (ngModelChange)="answerText.set($event)" />
+                           [ngModel]="answerText()" (ngModelChange)="setAnswerText($event)" />
                   </mat-form-field>
                 }
                 @case (3) {
                   <mat-form-field appearance="outline" class="answer-field">
                     <mat-label>Your answer</mat-label>
                     <input matInput type="number" step="any"
-                           [ngModel]="answerText()" (ngModelChange)="answerText.set($event)" />
+                           [ngModel]="answerText()" (ngModelChange)="setAnswerText($event)" />
                   </mat-form-field>
                 }
                 @case (4) {
@@ -309,6 +309,11 @@ export class DashboardComponent implements OnInit {
   // Signals so computed() tracks them correctly
   answerText  = signal('');
   answerMulti = signal<string[]>([]);
+
+  // number inputs emit a JS number via NumberValueAccessor — always coerce to string
+  setAnswerText(v: unknown) {
+    this.answerText.set(v == null ? '' : String(v));
+  }
 
   listOptions = computed<string[]>(() => {
     const attrs = this.currentQuestion()?.questionTypeAttributes;
