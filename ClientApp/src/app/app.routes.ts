@@ -82,6 +82,14 @@ export const routes: Routes = [
       {
         path: 'award-scholarships',
         loadComponent: () => import('./features/org-admin/award-scholarships/award-scholarships').then(m => m.AwardScholarshipsComponent)
+      },
+      {
+        path: 'applications',
+        loadComponent: () => import('./features/org-admin/applications/applications').then(m => m.OrgApplicationsComponent)
+      },
+      {
+        path: 'applications/:id/questions',
+        loadComponent: () => import('./features/applications/application-questions').then(m => m.ApplicationQuestionsComponent)
       }
     ]
   },
@@ -109,6 +117,14 @@ export const routes: Routes = [
       {
         path: 'scholarships',
         loadComponent: () => import('./features/public-admin/scholarships/scholarships').then(m => m.PublicScholarshipsComponent)
+      },
+      {
+        path: 'applications',
+        loadComponent: () => import('./features/public-admin/applications/applications').then(m => m.PublicApplicationsComponent)
+      },
+      {
+        path: 'applications/:id/questions',
+        loadComponent: () => import('./features/applications/application-questions').then(m => m.ApplicationQuestionsComponent)
       }
     ]
   },
