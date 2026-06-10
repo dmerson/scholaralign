@@ -6,25 +6,29 @@ import { Scholarship, ScholarshipStatus } from '../models/scholarship.model';
 export class ScholarshipService {
   constructor(private http: HttpClient) {}
 
-  getAll(status?: ScholarshipStatus) {
+  getStatuses() {
+    return this.http.get<ScholarshipStatus[]>('/api/scholarships/statuses');
+  }
+
+  getAll(organizationId?: string) {
     let params = new HttpParams();
-    if (status) params = params.set('status', status);
+    if (organizationId) params = params.set('organizationId', organizationId);
     return this.http.get<Scholarship[]>('/api/scholarships', { params });
   }
 
-  getById(id: number) {
+  getById(id: string) {
     return this.http.get<Scholarship>(`/api/scholarships/${id}`);
   }
 
-  create(scholarship: Partial<Scholarship>) {
-    return this.http.post<Scholarship>('/api/scholarships', scholarship);
+  create(req: Partial<Scholarship>) {
+    return this.http.post<{ scholarshipId: string }>('/api/scholarships', req);
   }
 
-  update(id: number, scholarship: Partial<Scholarship>) {
-    return this.http.put<Scholarship>(`/api/scholarships/${id}`, scholarship);
+  update(id: string, req: Partial<Scholarship>) {
+    return this.http.put<{ scholarshipId: string }>(`/api/scholarships/${id}`, req);
   }
 
-  delete(id: number) {
+  delete(id: string) {
     return this.http.delete(`/api/scholarships/${id}`);
   }
 }

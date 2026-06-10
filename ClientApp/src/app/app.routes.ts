@@ -21,6 +21,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'scholarships/:id',
+    loadComponent: () => import('./features/scholarships/scholarship-detail').then(m => m.ScholarshipDetailComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'applications',
     loadComponent: () => import('./features/applications/application-list').then(m => m.ApplicationListComponent),
     canActivate: [authGuard]
