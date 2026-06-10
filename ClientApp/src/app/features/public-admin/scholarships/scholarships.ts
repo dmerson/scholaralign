@@ -11,9 +11,11 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Scholarship, ScholarshipStatus } from '../../../core/models/scholarship.model';
 import { AwardYear } from '../../../core/models/award-year.model';
 import { Organization } from '../../../core/models/organization.model';
+import { AdminApplication } from '../../../core/models/admin-application.model';
 import { ScholarshipService } from '../../../core/services/scholarship.service';
 import { AwardYearService } from '../../../core/services/award-year.service';
 import { OrganizationService } from '../../../core/services/organization.service';
+import { AdminApplicationService } from '../../../core/services/admin-application.service';
 import { ScholarshipDialogComponent } from '../../../shared/dialogs/scholarship-dialog';
 
 const PUBLIC_ORG_ID = '00000000-0000-0000-0000-000000000000';
@@ -85,16 +87,18 @@ const STATUS_LABELS: Record<number, string> = {
   `]
 })
 export class PublicScholarshipsComponent implements OnInit {
-  private svc = inject(ScholarshipService);
-  private aySvc = inject(AwardYearService);
+  private svc    = inject(ScholarshipService);
+  private aySvc  = inject(AwardYearService);
   private orgSvc = inject(OrganizationService);
+  private appSvc = inject(AdminApplicationService);
   private dialog = inject(MatDialog);
-  private snack = inject(MatSnackBar);
+  private snack  = inject(MatSnackBar);
 
-  scholarships = signal<Scholarship[]>([]);
-  awardYears = signal<AwardYear[]>([]);
-  statuses = signal<ScholarshipStatus[]>([]);
+  scholarships  = signal<Scholarship[]>([]);
+  awardYears    = signal<AwardYear[]>([]);
+  statuses      = signal<ScholarshipStatus[]>([]);
   organizations = signal<Organization[]>([]);
+  applications  = signal<AdminApplication[]>([]);
   loading = signal(true);
   cols = ['name', 'awardYear', 'status', 'actions'];
 
@@ -107,6 +111,7 @@ export class PublicScholarshipsComponent implements OnInit {
     this.svc.getStatuses().subscribe(s => this.statuses.set(s));
     this.aySvc.getAll(PUBLIC_ORG_ID).subscribe(a => this.awardYears.set(a));
     this.orgSvc.getAll().subscribe(o => this.organizations.set(o));
+    this.appSvc.getAll().subscribe(a => this.applications.set(a));
     this.svc.getAll(PUBLIC_ORG_ID).subscribe({
       next: d => { this.scholarships.set(d); this.loading.set(false); },
       error: () => this.loading.set(false)
@@ -116,14 +121,14 @@ export class PublicScholarshipsComponent implements OnInit {
   openAdd() {
     this.dialog.open(ScholarshipDialogComponent, {
       width: '760px', maxWidth: '90vw',
-      data: { scholarship: null, organizationId: PUBLIC_ORG_ID, organizations: this.organizations(), awardYears: this.awardYears(), statuses: this.statuses() }
+      data: { scholarship: null, organizationId: PUBLIC_ORG_ID, organizations: this.organizations(), awardYears: this.awardYears(), statuses: this.statuses(), applications: this.applications() }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(s: Scholarship) {
     this.dialog.open(ScholarshipDialogComponent, {
       width: '760px', maxWidth: '90vw',
-      data: { scholarship: s, organizationId: PUBLIC_ORG_ID, organizations: this.organizations(), awardYears: this.awardYears(), statuses: this.statuses() }
+      data: { scholarship: s, organizationId: PUBLIC_ORG_ID, organizations: this.organizations(), awardYears: this.awardYears(), statuses: this.statuses(), applications: this.applications() }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 

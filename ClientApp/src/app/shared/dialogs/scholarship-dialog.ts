@@ -16,6 +16,7 @@ import { Requirement, Operator } from '../../core/models/requirement.model';
 import { Question } from '../../core/models/question.model';
 import { Organization } from '../../core/models/organization.model';
 import { SubOrganization } from '../../core/models/sub-organization.model';
+import { AdminApplication } from '../../core/models/admin-application.model';
 import { ScholarshipService } from '../../core/services/scholarship.service';
 import { RequirementService } from '../../core/services/requirement.service';
 import { QuestionService } from '../../core/services/question.service';
@@ -28,6 +29,7 @@ export interface ScholarshipDialogData {
   organizations: Organization[];
   awardYears: AwardYear[];
   statuses: ScholarshipStatus[];
+  applications: AdminApplication[];
 }
 
 @Component({
@@ -91,6 +93,16 @@ export interface ScholarshipDialogData {
                   <mat-option [value]="ay.awardYearId">{{ ay.awardYearDescription }}</mat-option>
                 }
               </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Application (optional)</mat-label>
+              <mat-select formControlName="applicationId">
+                <mat-option [value]="null">— None —</mat-option>
+                @for (a of data.applications; track a.applicationId) {
+                  <mat-option [value]="a.applicationId">{{ a.scholarshipApplicationName }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>The application form users will fill out when applying</mat-hint>
             </mat-form-field>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Status</mat-label>
@@ -246,6 +258,7 @@ export class ScholarshipDialogComponent {
     });
     this.detailsForm = this.fb.group({
       awardYearId: [data.scholarship?.awardYearId ?? null],
+      applicationId: [data.scholarship?.applicationId ?? null],
       scholarshipStatus: [data.scholarship?.scholarshipStatus ?? 1, Validators.required],
       amount: [data.scholarship?.amount ?? null],
       amountDescription: [data.scholarship?.amountDescription ?? ''],
