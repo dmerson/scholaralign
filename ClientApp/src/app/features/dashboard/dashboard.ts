@@ -173,7 +173,8 @@ import { Question } from '../../core/models/question.model';
                 <p class="empty-state">No eligible scholarships yet.</p>
               } @else {
                 @for (s of eligible(); track s.scholarshipId) {
-                  <mat-card class="schol-card eligible-card">
+                  <mat-card class="schol-card eligible-card clickable"
+                            [routerLink]="['/scholarships', s.scholarshipId]">
                     <mat-card-header>
                       <mat-icon mat-card-avatar class="eligible-icon">workspace_premium</mat-icon>
                       <mat-card-title>{{ s.scholarshipName }}</mat-card-title>
@@ -204,7 +205,8 @@ import { Question } from '../../core/models/question.model';
               } @else {
                 <p class="hint">These scholarships are waiting for more answers.</p>
                 @for (s of unknown(); track s.scholarshipId) {
-                  <mat-card class="schol-card unknown-card">
+                  <mat-card class="schol-card unknown-card clickable"
+                            [routerLink]="['/scholarships', s.scholarshipId]">
                     <mat-card-header>
                       <mat-icon mat-card-avatar class="unknown-icon">pending</mat-icon>
                       <mat-card-title>{{ s.scholarshipName }}</mat-card-title>
@@ -234,7 +236,8 @@ import { Question } from '../../core/models/question.model';
                 <p class="empty-state">No ineligible scholarships.</p>
               } @else {
                 @for (s of ineligible(); track s.scholarshipId) {
-                  <mat-card class="schol-card ineligible-card">
+                  <mat-card class="schol-card ineligible-card clickable"
+                            [routerLink]="['/scholarships', s.scholarshipId]">
                     <mat-card-header>
                       <mat-icon mat-card-avatar class="ineligible-icon">block</mat-icon>
                       <mat-card-title>{{ s.scholarshipName }}</mat-card-title>
@@ -283,6 +286,8 @@ import { Question } from '../../core/models/question.model';
     .ineligible-badge { background: #f5f5f5; color: #757575; }
     .tab-content { padding: 16px 0; display: flex; flex-direction: column; gap: 12px; }
     .schol-card { border-left: 4px solid #e0e0e0; }
+    .clickable { cursor: pointer; transition: box-shadow 0.15s; }
+    .clickable:hover { box-shadow: 0 4px 12px rgba(0,0,0,.15); }
     .eligible-card  { border-left-color: #388e3c; }
     .unknown-card   { border-left-color: #f57c00; }
     .ineligible-card { opacity: 0.65; }

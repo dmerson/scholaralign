@@ -55,6 +55,106 @@ public class EngineController : ControllerBase
         });
     }
 
+    // ── GET /api/engine/my-answers/{userEmail} ────────────────────────
+    [HttpGet("my-answers/{userEmail}")]
+    public async Task<IActionResult> GetMyAnswers(string userEmail)
+    {
+        var data = await (
+            from a in _db.Answers
+            join q in _db.Questions on a.QuestionId equals q.QuestionId
+            where a.UserEmail == userEmail
+            orderby q.QuestionOrder, q.QuestionDescription
+            select new
+            {
+                q.QuestionId,
+                q.QuestionDescription,
+                q.QuestionTypeId,
+                q.QuestionTypeAttributes,
+                a.AnswerValue,
+                a.LastModified
+            }
+        ).ToListAsync();
+        return Ok(data);
+    }
+
+    // ── GET /api/engine/scholarship-detail/{userEmail}/{scholarshipId} ─
+    [HttpGet("scholarship-detail/{userEmail}/{scholarshipId:guid}")]
+    public async Task<IActionResult> GetScholarshipDetail(string userEmail, Guid scholarshipId)
+    {
+        var schol = await (
+            from s in _db.Scholarships
+            join a in _db.ScholarshipAbstracts on s.ScholarshipAbstractId equals a.ScholarshipAbstractId
+            join o in _db.Organizations on a.OrganizationId equals o.OrganizationId
+            join ay in _db.AwardYears on s.AwardYearId equals ay.AwardYearId into ayJoin
+            from ay in ayJoin.DefaultIfEmpty()
+            where s.ScholarshipId == scholarshipId
+            select new
+            {
+                s.ScholarshipId,
+                a.ScholarshipName,
+                a.ScholarshipDescription,
+                OrgName = o.OrganizationName,
+                AwardYearDescription = ay != null ? ay.AwardYearDescription : null,
+                s.Amount,
+                s.AmountDescription,
+                s.StartDate,
+                s.EndDate,
+                s.EligibilityInformation,
+                s.ScholarshipStatus,
+                s.ScholarshipUrl,
+                s.AwardingInformation
+            }
+        ).FirstOrDefaultAsync();
+
+        if (schol == null) return NotFound();
+
+        var userStatus = await _db.UserScholarships
+            .Where(us => us.UserEmail == userEmail && us.ScholarshipId == scholarshipId)
+            .Select(us => (int?)us.UserScholarshipStatus)
+            .FirstOrDefaultAsync();
+
+        var requirements = await _db.ScholarshipRequirements
+            .Where(r => r.ScholarshipId == scholarshipId)
+            .OrderBy(r => r.Grouping)
+            .ToListAsync();
+
+        var questionIds = requirements.Select(r => r.QuestionId).Distinct().ToList();
+
+        var questions = questionIds.Count > 0
+            ? await _db.Questions.Where(q => questionIds.Contains(q.QuestionId)).ToDictionaryAsync(q => q.QuestionId)
+            : new Dictionary<Guid, Question>();
+
+        var answers = questionIds.Count > 0
+            ? await _db.Answers.Where(a => a.UserEmail == userEmail && questionIds.Contains(a.QuestionId)).ToDictionaryAsync(a => a.QuestionId)
+            : new Dictionary<Guid, Answer>();
+
+        var ops = await _db.Operators.ToDictionaryAsync(o => o.OperatorId);
+
+        var reqs = requirements.Select(r =>
+        {
+            var q  = questions.GetValueOrDefault(r.QuestionId);
+            var ans = answers.GetValueOrDefault(r.QuestionId);
+            var op  = ops.GetValueOrDefault(r.OperatorId);
+            bool? eval = q != null ? EvaluateRequirement(r, ans, q.QuestionTypeId) : null;
+            return new
+            {
+                r.ScholarshipRequirementId,
+                r.Grouping,
+                r.QuestionId,
+                QuestionDescription   = q?.QuestionDescription,
+                QuestionTypeId        = q?.QuestionTypeId ?? 0,
+                QuestionTypeAttributes = q?.QuestionTypeAttributes,
+                r.OperatorId,
+                OperatorShownName = op?.OperatorShownName,
+                r.RequirementValue,
+                UserAnswer = ans?.AnswerValue,
+                Status = eval.HasValue ? (eval.Value ? 1 : -1) : 0
+            };
+        }).ToList();
+
+        return Ok(new { scholarship = schol, userStatus, requirements = reqs });
+    }
+
     // ── GET /api/engine/next-question/{userEmail} ──────────────────────
     [HttpGet("next-question/{userEmail}")]
     public async Task<IActionResult> GetNextQuestion(string userEmail)
