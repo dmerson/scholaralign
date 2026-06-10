@@ -60,3 +60,39 @@ export interface ScholarshipDetailResponse {
   userStatus: number | null;
   requirements: RequirementDetail[];
 }
+
+export interface UserApplicationSummary {
+  scholarshipId: string;
+  scholarshipName: string;
+  orgName: string;
+  amount?: number | null;
+  amountDescription?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  applicationId: string;
+  applicationName: string;
+  questionCount: number;
+  isStarted: boolean;
+  isSubmitted: boolean;
+  submittedDate?: string | null;
+}
+
+export interface UserApplicationQuestion {
+  applicationQuestionId: string;
+  questionId: string;
+  questionDescription: string;
+  questionTypeId: number;
+  questionTypeAttributes?: string | null;
+  order: number;
+  answerValue?: string | null;
+}
+
+export interface UserApplicationDetail {
+  scholarshipId: string;
+  scholarshipName: string;
+  applicationId: string;
+  applicationName: string;
+  isSubmitted: boolean;
+  submittedDate?: string | null;
+  questions: UserApplicationQuestion[];
+}
