@@ -6,11 +6,34 @@
 
   <span class="spacer"></span>
 
-  <a routerLink="/scholarships" mat-button routerLinkActive="active-link">Scholarships</a>
-
   @if (auth.isAuthenticated()) {
-    <a routerLink="/my-applications" mat-button routerLinkActive="active-link">My Applications</a>
-    <a routerLink="/admin" mat-button routerLinkActive="active-link">Admin</a>
+    <a routerLink="/dashboard" mat-button routerLinkActive="active-link">Dashboard</a>
+    <a routerLink="/scholarships" mat-button routerLinkActive="active-link">Scholarships</a>
+    <a routerLink="/applications" mat-button routerLinkActive="active-link">Applications</a>
+    <a routerLink="/reviewer" mat-button routerLinkActive="active-link">Reviewer</a>
+
+    <button mat-button [matMenuTriggerFor]="orgAdminMenu">
+      Org Admin <mat-icon>arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #orgAdminMenu="matMenu">
+      <a mat-menu-item routerLink="/org-admin/award-years">Award Years</a>
+      <a mat-menu-item routerLink="/org-admin/users-roles">Users &amp; Roles</a>
+      <a mat-menu-item routerLink="/org-admin/hierarchy">Organization Hierarchy</a>
+      <a mat-menu-item routerLink="/org-admin/committees">Assign Committees</a>
+      <a mat-menu-item routerLink="/org-admin/scholarships">Scholarships</a>
+      <a mat-menu-item routerLink="/org-admin/award-scholarships">Award Scholarships</a>
+    </mat-menu>
+
+    <button mat-button [matMenuTriggerFor]="publicAdminMenu">
+      Public Admin <mat-icon>arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #publicAdminMenu="matMenu">
+      <a mat-menu-item routerLink="/public-admin/questions">Questions</a>
+      <a mat-menu-item routerLink="/public-admin/award-years">Award Years</a>
+      <a mat-menu-item routerLink="/public-admin/scholarships">Public Scholarships</a>
+      <a mat-menu-item routerLink="/public-admin/organizations">Organizations</a>
+      <a mat-menu-item routerLink="/public-admin/suborganizations">Suborganizations</a>
+    </mat-menu>
 
     <button mat-button [matMenuTriggerFor]="userMenu" class="user-btn">
       <mat-icon>account_circle</mat-icon>
