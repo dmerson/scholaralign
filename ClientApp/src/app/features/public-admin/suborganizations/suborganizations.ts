@@ -3,43 +3,29 @@ import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { FormsModule } from '@angular/forms';
-import { Organization } from '../../../core/models/organization.model';
 import { SubOrganization } from '../../../core/models/sub-organization.model';
-import { OrganizationService } from '../../../core/services/organization.service';
 import { SubOrganizationService } from '../../../core/services/sub-organization.service';
 import { SubOrganizationDialogComponent } from '../../../shared/dialogs/sub-organization-dialog';
+
+const PUBLIC_ORG_ID = '00000000-0000-0000-0000-000000000000';
 
 interface Crumb { id: string | null; name: string; }
 
 @Component({
   selector: 'app-suborganizations',
-  imports: [FormsModule, MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatSelectModule, MatFormFieldModule, MatDialogModule, MatSnackBarModule, MatProgressSpinnerModule],
+  imports: [MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatDialogModule, MatSnackBarModule, MatProgressSpinnerModule],
   template: `
     <div class="page">
       <div class="page-header">
         <h2>Suborganizations</h2>
-        <div class="header-right">
-          <mat-form-field appearance="outline" class="org-select">
-            <mat-label>Organization</mat-label>
-            <mat-select [(ngModel)]="selectedOrgId" (ngModelChange)="onOrgChange()">
-              @for (o of orgs(); track o.organizationId) {
-                <mat-option [value]="o.organizationId">{{ o.organizationName }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <button mat-raised-button color="primary" [disabled]="!selectedOrgId" (click)="openAdd()">
-            <mat-icon>add</mat-icon> Add {{ crumbs().length > 1 ? 'Child' : 'Suborganization' }}
-          </button>
-        </div>
+        <button mat-raised-button color="primary" (click)="openAdd()">
+          <mat-icon>add</mat-icon> Add {{ crumbs().length > 1 ? 'Child' : 'Suborganization' }}
+        </button>
       </div>
 
-      <!-- Breadcrumb -->
       <nav class="breadcrumb">
         @for (crumb of crumbs(); track crumb.id; let last = $last) {
           @if (!last) {
@@ -53,8 +39,6 @@ interface Crumb { id: string | null; name: string; }
 
       @if (loading()) {
         <div class="center"><mat-spinner diameter="40" /></div>
-      } @else if (!selectedOrgId) {
-        <p class="hint">Select an organization above to view its suborganizations.</p>
       } @else {
         <mat-card>
           <table mat-table [dataSource]="visibleRows()" class="full-width">
@@ -99,13 +83,10 @@ interface Crumb { id: string | null; name: string; }
   styles: [`
     .page { padding: 24px; }
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .header-right { display: flex; align-items: center; gap: 12px; }
-    .org-select { min-width: 220px; }
     .breadcrumb { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; min-height: 36px; }
     .crumb-btn { min-width: 0; padding: 0 6px; font-size: 0.9rem; }
     .crumb-sep { color: #aaa; }
     .crumb-current { font-size: 0.9rem; font-weight: 500; padding: 0 6px; }
-    .hint { color: #888; font-style: italic; }
     .full-width { width: 100%; }
     .no-data { padding: 24px; text-align: center; color: #666; }
     .center { display: flex; justify-content: center; padding: 48px; }
@@ -113,37 +94,25 @@ interface Crumb { id: string | null; name: string; }
   `]
 })
 export class SubOrganizationsComponent implements OnInit {
-  private orgSvc = inject(OrganizationService);
-  private svc = inject(SubOrganizationService);
+  private svc    = inject(SubOrganizationService);
   private dialog = inject(MatDialog);
-  private snack = inject(MatSnackBar);
+  private snack  = inject(MatSnackBar);
 
-  orgs = signal<Organization[]>([]);
   allSubOrgs = signal<SubOrganization[]>([]);
-  loading = signal(false);
-  selectedOrgId = '';
-  crumbs = signal<Crumb[]>([{ id: null, name: 'Root' }]);
+  loading    = signal(false);
+  crumbs     = signal<Crumb[]>([{ id: null, name: 'Root' }]);
   cols = ['name', 'parent', 'children', 'actions'];
 
   currentParentId = computed(() => this.crumbs()[this.crumbs().length - 1].id);
-
-  visibleRows = computed(() =>
+  visibleRows     = computed(() =>
     this.allSubOrgs().filter(s => (s.subOrganizationParentId ?? null) === this.currentParentId())
   );
 
-  ngOnInit() {
-    this.orgSvc.getAll().subscribe(o => this.orgs.set(o));
-  }
-
-  onOrgChange() {
-    this.crumbs.set([{ id: null, name: 'Root' }]);
-    this.load();
-  }
+  ngOnInit() { this.load(); }
 
   load() {
-    if (!this.selectedOrgId) return;
     this.loading.set(true);
-    this.svc.getAll(this.selectedOrgId).subscribe({
+    this.svc.getAll(PUBLIC_ORG_ID).subscribe({
       next: d => { this.allSubOrgs.set(d); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
@@ -160,19 +129,19 @@ export class SubOrganizationsComponent implements OnInit {
 
   openAdd() {
     this.dialog.open(SubOrganizationDialogComponent, {
-      data: { subOrganization: null, organizationId: this.selectedOrgId, peers: this.allSubOrgs(), defaultParentId: this.currentParentId() }
+      data: { subOrganization: null, organizationId: PUBLIC_ORG_ID, peers: this.allSubOrgs(), defaultParentId: this.currentParentId() }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openAddChild(row: SubOrganization) {
     this.dialog.open(SubOrganizationDialogComponent, {
-      data: { subOrganization: null, organizationId: this.selectedOrgId, peers: this.allSubOrgs(), defaultParentId: row.subOrganizationId }
+      data: { subOrganization: null, organizationId: PUBLIC_ORG_ID, peers: this.allSubOrgs(), defaultParentId: row.subOrganizationId }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(row: SubOrganization) {
     this.dialog.open(SubOrganizationDialogComponent, {
-      data: { subOrganization: row, organizationId: this.selectedOrgId, peers: this.allSubOrgs(), defaultParentId: null }
+      data: { subOrganization: row, organizationId: PUBLIC_ORG_ID, peers: this.allSubOrgs(), defaultParentId: null }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
