@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ScholarAlign.Data;
 
@@ -11,9 +12,11 @@ using ScholarAlign.Data;
 namespace ScholarAlign.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260609235710_MakeScholarshipFieldsNullable")]
+    partial class MakeScholarshipFieldsNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -912,9 +915,9 @@ namespace ScholarAlign.Data.Migrations
                     b.ToTable("ScholarshipAbstracts");
                 });
 
-            modelBuilder.Entity("ScholarAlign.Models.ScholarshipCommittee", b =>
+            modelBuilder.Entity("ScholarAlign.Models.ScholarshipApplicationReview", b =>
                 {
-                    b.Property<Guid>("ScholarshipCommitteeId")
+                    b.Property<Guid>("ScholarshipApplicationReviewId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
@@ -926,15 +929,36 @@ namespace ScholarAlign.Data.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("ScholarshipId")
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int?>("ReviewerDecision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewerNotes")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ReviewerRating")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScholarshipApplicationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SubOrganizationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
-                    b.HasKey("ScholarshipCommitteeId");
+                    b.HasKey("ScholarshipApplicationReviewId");
 
-                    b.ToTable("ScholarshipCommittees");
+                    b.ToTable("ScholarshipApplicationReviews");
                 });
 
             modelBuilder.Entity("ScholarAlign.Models.ScholarshipDecision", b =>
@@ -1021,9 +1045,9 @@ namespace ScholarAlign.Data.Migrations
                     b.ToTable("ScholarshipRequirements");
                 });
 
-            modelBuilder.Entity("ScholarAlign.Models.ScholarshipReview", b =>
+            modelBuilder.Entity("ScholarAlign.Models.ScholarshipReviewer", b =>
                 {
-                    b.Property<Guid>("ScholarshipReviewId")
+                    b.Property<Guid>("ScholarshipReviewerId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
@@ -1038,22 +1062,12 @@ namespace ScholarAlign.Data.Migrations
                     b.Property<DateTime>("LastModified")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("ReviewerDecision")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ReviewerEmail")
+                    b.Property<string>("ReviewEmail")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("ReviewerNotes")
-                        .HasMaxLength(8000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ReviewerRating")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ScholarshipApplicationId")
+                    b.Property<Guid>("ScholarshipId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("UpdatedBy")
@@ -1061,9 +1075,9 @@ namespace ScholarAlign.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.HasKey("ScholarshipReviewId");
+                    b.HasKey("ScholarshipReviewerId");
 
-                    b.ToTable("ScholarshipReviews");
+                    b.ToTable("ScholarshipReviewers");
                 });
 
             modelBuilder.Entity("ScholarAlign.Models.ScholarshipStatus", b =>
@@ -1157,33 +1171,6 @@ namespace ScholarAlign.Data.Migrations
                     b.HasKey("SubOrganizationId");
 
                     b.ToTable("SubOrganizations");
-                });
-
-            modelBuilder.Entity("ScholarAlign.Models.SubOrganizationUser", b =>
-                {
-                    b.Property<Guid>("SubOrganizationUserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("SubOrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("SubOrganizationUserId");
-
-                    b.ToTable("SubOrganizationUsers");
                 });
 
             modelBuilder.Entity("ScholarAlign.Models.UserApplication", b =>

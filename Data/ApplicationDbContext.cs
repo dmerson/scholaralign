@@ -35,8 +35,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserScholarshipApplication> UserScholarshipApplications => Set<UserScholarshipApplication>();
     public DbSet<UserApplicationAnswer> UserApplicationAnswers => Set<UserApplicationAnswer>();
     public DbSet<ScholarshipDecision> ScholarshipDecisions => Set<ScholarshipDecision>();
-    public DbSet<ScholarshipReviewer> ScholarshipReviewers => Set<ScholarshipReviewer>();
-    public DbSet<ScholarshipApplicationReview> ScholarshipApplicationReviews => Set<ScholarshipApplicationReview>();
+    public DbSet<SubOrganizationUser> SubOrganizationUsers => Set<SubOrganizationUser>();
+    public DbSet<ScholarshipCommittee> ScholarshipCommittees => Set<ScholarshipCommittee>();
+    public DbSet<ScholarshipReview> ScholarshipReviews => Set<ScholarshipReview>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
