@@ -211,7 +211,7 @@ export interface ScholarshipDialogData {
     </mat-dialog-content>
   `,
   styles: [`
-    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 700px; padding-top: 16px; }
+    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 800px; padding-top: 16px; }
     .full-width { width: 100%; }
     .row-fields { display: flex; gap: 12px; }
     .row-fields mat-form-field { flex: 1; }
