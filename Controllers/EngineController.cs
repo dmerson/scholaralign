@@ -55,6 +55,105 @@ public class EngineController : ControllerBase
         });
     }
 
+    // ── GET /api/engine/next-question/{userEmail} ──────────────────────
+    [HttpGet("next-question/{userEmail}")]
+    public async Task<IActionResult> GetNextQuestion(string userEmail)
+    {
+        // Only scholarships where eligibility is still unknown
+        var unknownScholarshipIds = await _db.UserScholarships
+            .Where(us => us.UserEmail == userEmail && us.UserScholarshipStatus == 0)
+            .Select(us => us.ScholarshipId)
+            .ToListAsync();
+
+        if (unknownScholarshipIds.Count == 0) return Ok(null);
+
+        // All requirements attached to those scholarships
+        var requirements = await _db.ScholarshipRequirements
+            .Where(r => unknownScholarshipIds.Contains(r.ScholarshipId))
+            .ToListAsync();
+
+        // Questions the user has already answered
+        var answeredIds = (await _db.Answers
+            .Where(a => a.UserEmail == userEmail)
+            .Select(a => a.QuestionId)
+            .ToListAsync()).ToHashSet();
+
+        // Unanswered question IDs referenced by unknown-scholarship requirements
+        var unansweredIds = requirements
+            .Select(r => r.QuestionId)
+            .Distinct()
+            .Where(id => !answeredIds.Contains(id))
+            .ToList();
+
+        if (unansweredIds.Count == 0) return Ok(null);
+
+        var questions = await _db.Questions
+            .Where(q => unansweredIds.Contains(q.QuestionId))
+            .ToListAsync();
+
+        // Priority 1: lowest QuestionOrder
+        var ordered = questions
+            .Where(q => q.QuestionOrder.HasValue)
+            .OrderBy(q => q.QuestionOrder)
+            .FirstOrDefault();
+        if (ordered != null) return Ok(ordered);
+
+        // Priority 2: most frequently referenced across unknown-scholarship requirements
+        var mostFrequentId = requirements
+            .Where(r => unansweredIds.Contains(r.QuestionId))
+            .GroupBy(r => r.QuestionId)
+            .OrderByDescending(g => g.Count())
+            .First().Key;
+
+        return Ok(questions.First(q => q.QuestionId == mostFrequentId));
+    }
+
+    // ── POST /api/engine/answer ────────────────────────────────────────
+    [HttpPost("answer")]
+    public async Task<IActionResult> SaveAnswer([FromBody] EngineAnswerRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.UserEmail) || req.QuestionId == Guid.Empty)
+            return BadRequest("UserEmail and QuestionId required.");
+
+        var now = DateTime.UtcNow;
+        var existing = await _db.Answers
+            .FirstOrDefaultAsync(a => a.UserEmail == req.UserEmail && a.QuestionId == req.QuestionId);
+
+        if (existing != null)
+        {
+            existing.AnswerValue = req.AnswerValue;
+            existing.LastModified = now;
+        }
+        else
+        {
+            _db.Answers.Add(new Answer
+            {
+                AnswerId = Guid.NewGuid(),
+                QuestionId = req.QuestionId,
+                UserEmail = req.UserEmail,
+                AnswerValue = req.AnswerValue,
+                CreatedOn = now,
+                LastModified = now
+            });
+        }
+        await _db.SaveChangesAsync();
+
+        // Re-evaluate every scholarship this question's requirements belong to
+        var affectedIds = await _db.ScholarshipRequirements
+            .Where(r => r.QuestionId == req.QuestionId)
+            .Select(r => r.ScholarshipId)
+            .Distinct()
+            .ToListAsync();
+
+        var userAffectedIds = await _db.UserScholarships
+            .Where(us => us.UserEmail == req.UserEmail && affectedIds.Contains(us.ScholarshipId))
+            .Select(us => us.ScholarshipId)
+            .ToListAsync();
+
+        await EvaluateRequirementsAsync(req.UserEmail, userAffectedIds);
+        return Ok(new { saved = true });
+    }
+
     // ── Sync: availability filter + create UserScholarship records ─────
     private async Task SyncInternalAsync(string userEmail)
     {
@@ -291,3 +390,4 @@ public class EngineController : ControllerBase
 }
 
 public record EngineSyncRequest(string UserEmail);
+public record EngineAnswerRequest(string UserEmail, Guid QuestionId, string AnswerValue);
