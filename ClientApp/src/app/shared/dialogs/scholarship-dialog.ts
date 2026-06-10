@@ -212,11 +212,19 @@ export interface ScholarshipDialogData {
   `,
   styles: [`
     :host { display: flex; flex-direction: column; height: 100%; }
+    :host ::ng-deep .mat-mdc-dialog-content { max-height: calc(90vh - 80px) !important; }
     .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 920px; padding-top: 16px; }
     .full-width { width: 100%; }
     .row-fields { display: flex; gap: 12px; }
     .row-fields mat-form-field { flex: 1; }
-    .step-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-bottom: 8px; }
+    .step-actions {
+      position: sticky; bottom: 0;
+      background: white;
+      display: flex; justify-content: flex-end; gap: 8px;
+      margin-top: 12px; padding: 10px 0 4px;
+      border-top: 1px solid rgba(0,0,0,.08);
+      z-index: 1;
+    }
     .req-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .req-count { font-size: 0.9rem; color: #555; }
     .req-table { width: 100%; font-size: 0.85rem; }
