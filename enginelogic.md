@@ -44,6 +44,71 @@ Storing numbers as JSON number literals risks floating-point drift and locale-sp
 
 ---
 
+# Scholarship Availability Rules
+
+Before the wizard or requirement engine runs, a scholarship must pass the **availability filter**. This is a pre-check applied on every login (during the sync step) that determines which scholarships are even visible to a user. A scholarship that fails the availability filter is never added to the user's UserScholarships table, and the wizard will never ask questions about it.
+
+## Rule 1 — Status must be Live
+
+Only scholarships with `ScholarshipStatus = 4 (Live)` are considered. Scholarships in Draft, Needs Coding, Coded, Under Review, Awarded, or Complete are excluded.
+
+## Rule 2 — Dates must be present and in range
+
+Both `StartDate` and `EndDate` must be non-null. If either is null, the scholarship is excluded. If both are present, today's date must satisfy:
+
+```
+StartDate <= today <= EndDate
+```
+
+A scholarship whose window has not yet opened, or whose deadline has passed, is excluded even if the user would otherwise qualify.
+
+## Rule 3 — Organization access
+
+A scholarship passes if **either** condition is true:
+
+### 3a — Public organization (visible to everyone)
+
+The scholarship's owning organization has `IsPublic = true`. Any live, in-range scholarship owned by a public organization is added to every user's eligibility pool on login.
+
+### 3b — Org membership (private organization)
+
+The scholarship's owning organization has `IsPublic = false`. The user must be a member of that organization, determined by:
+
+1. **Direct membership** — a record exists in `OrganizationUsers` where `OrganizationId = scholarship.OrganizationId` and `UserEmail = user's email`.
+
+2. **SubOrganization cascade** — the user is a member of any `SubOrganization` (via `SubOrganizationUsers`) where `SubOrganization.OrganizationId = scholarship.OrganizationId`. Being a member of any sub-department, committee, or child unit within an organization grants access to all of that organization's scholarships. This means a user in "ME Scholarship Committee" (a SubOrg under "University of Arizona") automatically has access to all University of Arizona scholarships.
+
+## Summary table
+
+| Condition | Result |
+|---|---|
+| Status ≠ Live (4) | Excluded |
+| StartDate or EndDate is null | Excluded |
+| Today < StartDate or today > EndDate | Excluded |
+| Org.IsPublic = true | **Included for everyone** |
+| User in OrganizationUsers for scholarship's org | **Included** |
+| User in SubOrganizationUsers for any SubOrg in scholarship's org | **Included** |
+
+## Example — Mixed access on login
+
+User **alice@ua.edu** is in:
+- `OrganizationUsers` → University of Arizona (org A, IsPublic = false)
+- `SubOrganizationUsers` → ME Scholarship Committee (SubOrg under org A)
+
+Active Live scholarships with valid dates:
+| Scholarship | Org | Org.IsPublic |
+|---|---|---|
+| Dean's Award | Public (Guid.Empty) | true |
+| UA Engineering Award | University of Arizona | false |
+| MIT Research Grant | MIT | false |
+
+On login sync:
+- **Dean's Award** → IsPublic = true → added for alice (and every user)
+- **UA Engineering Award** → alice is a direct member of UA → added
+- **MIT Research Grant** → alice is not in MIT → **excluded**
+
+---
+
 # Wizard Engine Logic
 
 The first thing that happens when you login to the application is the wizard is invoked. The home page is the determined by the result of the wizard in the form of a question. To determine what question to show we have look at the user's scholarships.
