@@ -195,11 +195,40 @@ When the user submits, UserApplications.SubmittedDate is set to the current date
 
 # Review Flow
 
-## Assigning reviewers
-Reviewers are assigned at the scholarship level via ScholarshipReviewers (ScholarshipId + ReviewEmail). A reviewer assigned to a scholarship can see all UserScholarshipApplications records for that ScholarshipId where the status is Submitted.
+## When review begins
+The review process is triggered after a scholarship's EndDate has passed. The Organization Admin sets ScholarshipStatus to 5 (Under Review), which makes the scholarship visible in the reviewer queue and in the Award Scholarships page.
+
+## Committee setup
+Before review begins, the Organization Admin:
+1. Creates or designates a SubOrganization as the review committee.
+2. Assigns users from the organization to the committee via SubOrganizationUsers (SubOrganizationId + UserEmail).
+3. Links the committee to one or more scholarships via ScholarshipCommittees (SubOrganizationId + ScholarshipId).
+
+A committee can be assigned to multiple scholarships. Each user in the committee becomes a reviewer for every scholarship that committee is assigned to.
+
+## Reviewer sees their queue
+A user with the Reviewer role whose email appears in SubOrganizationUsers for a committee that is linked to a scholarship (via ScholarshipCommittees) will see that scholarship in their reviewer queue — but only while ScholarshipStatus = 5 (Under Review). Scholarships with status 6 (Awarded) or 7 (Complete) do not appear.
 
 ## Reviewer writes a review
-For each submitted application they are assigned to review, the reviewer writes a ScholarshipApplicationReviews record linked to the ScholarshipApplicationId. To retrieve the applicant's answers, the system follows: UserScholarshipApplications.UserApplicationId -> UserApplications.ApplicationId -> ApplicationQuestions -> UserApplicationAnswers filtered by UserApplicationId. The reviewer fills in ReviewerNotes, ReviewerDecision, and ReviewerRating.
+For each scholarship in their queue the reviewer sees a list of all UserScholarshipApplications for that ScholarshipId where UserScholarshipStatusId = 3 (Submitted). The reviewer clicks into an applicant and sees their submitted answers, retrieved by following:
 
-## Making a final decision
-Once review is complete, the existing ScholarshipDecisions record is updated with the reviewer's email in ReviewersEmail and the outcome in DecisionId from ApplicationDecisions (3 Under Review, 4 Rejected, 5 Accepted, 6 Awarded). UserScholarshipApplications.UserScholarshipStatusId is also updated to reflect the current stage.
+UserScholarshipApplications.UserApplicationId → UserApplications.ApplicationId → ApplicationQuestions → UserApplicationAnswers filtered by UserApplicationId.
+
+The reviewer writes a ScholarshipReviews record:
+- ScholarshipApplicationId: the specific UserScholarshipApplications record (ties the review to this applicant for this scholarship specifically, not just the generic application form)
+- ReviewerEmail: the reviewer's email
+- ReviewerNotes, ReviewerRating, ReviewerDecision (from ReviewerDecisions: 1 Accepted, 2 Rejected, 3 In Progress)
+
+A reviewer can update their ScholarshipReviews record at any time until the scholarship is awarded.
+
+## Why ScholarshipApplicationId and not just ScholarshipId
+Two scholarships can share the same Application (e.g. both require only a resume upload). A reviewer evaluating the same candidate for both scholarships writes two separate ScholarshipReviews records — one per ScholarshipApplicationId — with different notes and decisions. The Low Income scholarship review may note the candidate lacks financial need; the Merit scholarship review may rate them highly. These are different records because UserScholarshipApplications produces a unique ScholarshipApplicationId per user per scholarship, even when the underlying Application form is shared.
+
+## Awarding
+The awarding user (Organization Admin) opens the Award Scholarships page and selects a scholarship. They see every applicant alongside the collated ScholarshipReviews from all committee members (notes, ratings, decisions). They select one or more winners and confirm. The system:
+1. Sets ScholarshipDecisions.DecisionId = 6 (Awarded) for winners and updates ReviewersEmail to the awarding user.
+2. Sets ScholarshipDecisions.DecisionId = 4 (Rejected) for non-winners.
+3. Updates UserScholarshipApplications.UserScholarshipStatusId to reflect Awarded or Rejected.
+4. Sets Scholarships.ScholarshipStatus = 6 (Awarded).
+
+Once ScholarshipStatus = 6, the scholarship disappears from the reviewer queue and the awarding page. It no longer shows as an active scholarship for new applicants.
