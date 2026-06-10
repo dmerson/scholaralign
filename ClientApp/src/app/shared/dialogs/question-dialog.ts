@@ -49,8 +49,16 @@ const LIST_TYPE_IDS = [4, 5, 6]; // Checkbox List, Radiobutton List, Dropdown Li
         @if (isListType()) {
           <div class="list-items-section">
             <p class="list-label">List Items</p>
-            @for (ctrl of listItems.controls; track $index; let i = $index) {
+            @for (ctrl of listItems.controls; track $index; let i = $index; let first = $first; let last = $last) {
               <div class="item-row">
+                <div class="move-btns">
+                  <button mat-icon-button type="button" (click)="moveItem(i, -1)" [disabled]="first" aria-label="Move up">
+                    <mat-icon>arrow_upward</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" (click)="moveItem(i, 1)" [disabled]="last" aria-label="Move down">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </button>
+                </div>
                 <mat-form-field appearance="outline" class="item-field">
                   <input matInput [formControl]="asControl(ctrl)" maxlength="200" placeholder="Item {{ i + 1 }}">
                 </mat-form-field>
@@ -60,6 +68,7 @@ const LIST_TYPE_IDS = [4, 5, 6]; // Checkbox List, Radiobutton List, Dropdown Li
               </div>
             }
             <div class="item-row">
+              <div class="move-btns"></div>
               <mat-form-field appearance="outline" class="item-field">
                 <mat-label>New item</mat-label>
                 <input matInput [formControl]="newItemCtrl" maxlength="200"
@@ -87,6 +96,9 @@ const LIST_TYPE_IDS = [4, 5, 6]; // Checkbox List, Radiobutton List, Dropdown Li
     .list-label { margin: 0 0 8px; font-size: 0.875rem; font-weight: 500; color: rgba(0,0,0,.6); }
     .item-row { display: flex; align-items: center; gap: 8px; }
     .item-field { flex: 1; }
+    .move-btns { display: flex; flex-direction: column; width: 40px; flex-shrink: 0; }
+    .move-btns button { width: 40px; height: 28px; line-height: 28px; }
+    .move-btns mat-icon { font-size: 18px; }
   `]
 })
 export class QuestionDialogComponent {
@@ -132,6 +144,14 @@ export class QuestionDialogComponent {
 
   removeItem(index: number) {
     this.listItems.removeAt(index);
+  }
+
+  moveItem(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= this.listItems.length) return;
+    const ctrl = this.listItems.at(index);
+    this.listItems.removeAt(index);
+    this.listItems.insert(target, ctrl);
   }
 
   private parseItems(attrs: string | null | undefined): string[] {
