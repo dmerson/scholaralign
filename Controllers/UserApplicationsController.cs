@@ -120,11 +120,17 @@ public class UserApplicationsController : ControllerBase
         var userApp = await _db.UserApplications
             .FirstOrDefaultAsync(ua => ua.UserEmail == userEmail && ua.ApplicationId == schol.ApplicationId!.Value);
 
-        var answers = userApp != null
+        var appAnswers = userApp != null
             ? await _db.UserApplicationAnswers
                 .Where(uaa => uaa.UserApplicationId == userApp.UserApplicationId)
                 .ToDictionaryAsync(uaa => uaa.ApplicationQuestionId)
             : new Dictionary<Guid, UserApplicationAnswer>();
+
+        // Fall back to the user's engine answers for any question not yet answered in this application.
+        var questionIds = questions.Select(q => q.QuestionId).ToList();
+        var engineAnswers = await _db.Answers
+            .Where(a => a.UserEmail == userEmail && questionIds.Contains(a.QuestionId))
+            .ToDictionaryAsync(a => a.QuestionId);
 
         return Ok(new
         {
@@ -142,8 +148,11 @@ public class UserApplicationsController : ControllerBase
                 q.QuestionTypeId,
                 q.QuestionTypeAttributes,
                 q.Order,
-                AnswerValue = answers.TryGetValue(q.ApplicationQuestionId, out var ans)
-                    ? ans.ApplicationAnswerValue : null
+                AnswerValue = appAnswers.TryGetValue(q.ApplicationQuestionId, out var appAns)
+                    ? appAns.ApplicationAnswerValue
+                    : engineAnswers.TryGetValue(q.QuestionId, out var engAns)
+                        ? engAns.AnswerValue
+                        : null
             })
         });
     }
