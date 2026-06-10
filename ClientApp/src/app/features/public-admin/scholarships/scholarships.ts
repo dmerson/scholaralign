@@ -120,14 +120,14 @@ export class PublicScholarshipsComponent implements OnInit {
 
   openAdd() {
     this.dialog.open(ScholarshipDialogComponent, {
-      width: '860px', maxWidth: '90vw',
+      width: '1020px', maxWidth: '98vw', height: '90vh',
       data: { scholarship: null, organizationId: PUBLIC_ORG_ID, organizations: this.organizations(), awardYears: this.awardYears(), statuses: this.statuses(), applications: this.applications() }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(s: Scholarship) {
     this.dialog.open(ScholarshipDialogComponent, {
-      width: '860px', maxWidth: '90vw',
+      width: '1020px', maxWidth: '98vw', height: '90vh',
       data: { scholarship: s, organizationId: PUBLIC_ORG_ID, organizations: this.organizations(), awardYears: this.awardYears(), statuses: this.statuses(), applications: this.applications() }
     }).afterClosed().subscribe(r => { if (r) this.load(); });
   }

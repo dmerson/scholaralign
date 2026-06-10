@@ -211,15 +211,16 @@ export interface ScholarshipDialogData {
     </mat-dialog-content>
   `,
   styles: [`
-    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 800px; padding-top: 16px; }
+    :host { display: flex; flex-direction: column; height: 100%; }
+    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 920px; padding-top: 16px; }
     .full-width { width: 100%; }
     .row-fields { display: flex; gap: 12px; }
     .row-fields mat-form-field { flex: 1; }
-    .step-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .step-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-bottom: 8px; }
     .req-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .req-count { font-size: 0.9rem; color: #555; }
     .req-table { width: 100%; font-size: 0.85rem; }
-    .q-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .q-cell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .no-data { padding: 16px; text-align: center; color: #999; font-size: 0.85rem; }
     .req-center { display: flex; justify-content: center; padding: 24px; }
     .hint { color: #888; font-style: italic; }
