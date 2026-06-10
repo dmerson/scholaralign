@@ -126,7 +126,44 @@ The user has answered some questions but not Race. Because one requirement in th
 
 ---
 
-## Example 3: Ineligible — Freshman Excellence Award
+## Example 3: Multi-Value In List — Underclassman Award
+
+When the **In List** or **Not In List** operator is used, the `RequirementValue` contains an array of *acceptable* answers. The requirement is TRUE if the applicant's answer matches **any** value in that list.
+
+**Requirements (all Grouping = 1)**
+
+| Question | Operator | RequirementValue |
+|---|---|---|
+| CurrentClassType | ^ (In List) | `["Freshman", "Sophomore"]` |
+| GPA | >= | `3.0` |
+
+**Scenario A — Freshman applicant (eligible)**
+
+| Question | Answer |
+|---|---|
+| CurrentClassType | `Freshman` |
+| GPA | `3.4` |
+
+- CurrentClassType: "Freshman" is in ["Freshman", "Sophomore"] → **TRUE**
+- GPA: 3.4 >= 3.0 → **TRUE**
+- Group 1 complete and all TRUE → **UserScholarshipStatus = 1 (Eligible)**
+
+**Scenario B — Junior applicant (ineligible)**
+
+| Question | Answer |
+|---|---|
+| CurrentClassType | `Junior` |
+| GPA | `3.8` |
+
+- CurrentClassType: "Junior" is in ["Freshman", "Sophomore"] → **FALSE**
+- GPA: 3.8 >= 3.0 → TRUE but one requirement is FALSE
+- Group 1 complete and at least one FALSE → **UserScholarshipStatus = -1 (Ineligible)**
+
+**Key rule:** In List checks whether the applicant's single answer appears anywhere in the requirement's value array. For Checkbox List answers (where the user picks multiple items), In List is TRUE if *any* of the user's selected items appears in the requirement array. Not In List is TRUE only if *none* of the user's selected items appears in the requirement array.
+
+---
+
+## Example 4: Ineligible — High-GPA Freshman Award
 
 The user has answered all questions but fails every requirement in the only group. The scholarship moves to the ineligible pile.
 
@@ -134,24 +171,24 @@ The user has answered all questions but fails every requirement in the only grou
 
 | Question | Operator | RequirementValue |
 |---|---|---|
-| CurrentClassType | ^ (In List) | `{"value": ["Freshman"]}` |
-| GPA | >= | `{"value": "3.7"}` |
+| CurrentClassType | ^ (In List) | `["Freshman"]` |
+| GPA | >= | `3.7` |
 
 **User's Answers**
 
 | Question | Answer |
 |---|---|
-| CurrentClassType | `{"value": "Junior"}` |
-| GPA | `{"value": "3.2"}` |
+| CurrentClassType | `Junior` |
+| GPA | `3.2` |
 
 **Evaluation**
-- CurrentClassType: Junior In List [Freshman] → FALSE
+- CurrentClassType: "Junior" in ["Freshman"] → FALSE
 - GPA: 3.2 >= 3.7 → FALSE
 - Group 1 is complete and all FALSE → **UserScholarshipStatus = -1 (Ineligible)**
 
 ---
 
-## Example 4: Multi-Group, One Valid — Academic Excellence Scholarship
+## Example 5: Multi-Group, One Valid — Academic Excellence Scholarship
 
 This scholarship is open to either undergraduates with a 3.5+ GPA or graduate students with a 3.0+ GPA. The two groups represent two separate paths to eligibility — satisfying either one is enough. The user is an undergraduate with a 3.8 GPA so Group 1 passes even though Group 2 fails.
 

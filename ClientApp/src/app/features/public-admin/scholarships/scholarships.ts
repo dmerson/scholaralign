@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,7 +23,7 @@ const STATUS_LABELS: Record<number, string> = {
 
 @Component({
   selector: 'app-public-scholarships',
-  imports: [MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatChipsModule, MatSnackBarModule, MatProgressSpinnerModule, MatDialogModule],
+  imports: [RouterLink, MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatChipsModule, MatSnackBarModule, MatProgressSpinnerModule, MatDialogModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -56,6 +57,9 @@ const STATUS_LABELS: Record<number, string> = {
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let row">
                 <button mat-icon-button (click)="openEdit(row)" title="Edit"><mat-icon>edit</mat-icon></button>
+                <a mat-icon-button [routerLink]="['/org-admin/scholarships', row.scholarshipId, 'requirements']" title="Requirements">
+                  <mat-icon>tune</mat-icon>
+                </a>
                 <button mat-icon-button color="warn" (click)="delete(row)" title="Delete"><mat-icon>delete</mat-icon></button>
               </td>
             </ng-container>

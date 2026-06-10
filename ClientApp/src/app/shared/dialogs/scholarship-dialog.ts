@@ -1,14 +1,23 @@
-import { Component, inject, Inject } from '@angular/core';
+import { Component, inject, Inject, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
+import { MatTableModule } from '@angular/material/table';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Scholarship, ScholarshipStatus } from '../../core/models/scholarship.model';
 import { AwardYear } from '../../core/models/award-year.model';
+import { Requirement, Operator } from '../../core/models/requirement.model';
+import { Question } from '../../core/models/question.model';
 import { ScholarshipService } from '../../core/services/scholarship.service';
+import { RequirementService } from '../../core/services/requirement.service';
+import { QuestionService } from '../../core/services/question.service';
+import { RequirementDialogComponent } from './requirement-dialog';
 
 export interface ScholarshipDialogData {
   scholarship: Scholarship | null;
@@ -19,11 +28,11 @@ export interface ScholarshipDialogData {
 
 @Component({
   selector: 'app-scholarship-dialog',
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatStepperModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatStepperModule, MatTableModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <h2 mat-dialog-title>{{ data.scholarship ? 'Edit Scholarship' : 'Create Scholarship' }}</h2>
     <mat-dialog-content>
-      <mat-stepper [linear]="!data.scholarship" orientation="horizontal" #stepper>
+      <mat-stepper [linear]="!data.scholarship" orientation="horizontal" #stepper (selectionChange)="onStepChange($event)">
 
         <mat-step [stepControl]="abstractForm" label="Basic Info">
           <form [formGroup]="abstractForm" class="step-form">
@@ -109,23 +118,94 @@ export interface ScholarshipDialogData {
           </form>
         </mat-step>
 
+        <mat-step label="Requirements">
+          <div class="step-form">
+            @if (!data.scholarship) {
+              <p class="hint">Save the scholarship first, then return here to add requirements.</p>
+            } @else {
+              <div class="req-header">
+                <span class="req-count">{{ requirements().length }} requirement(s)</span>
+                <button mat-stroked-button type="button" (click)="openAddReq()">
+                  <mat-icon>add</mat-icon> Add
+                </button>
+              </div>
+              @if (reqLoading()) {
+                <div class="req-center"><mat-spinner diameter="32" /></div>
+              } @else {
+                <table mat-table [dataSource]="requirements()" class="req-table">
+                  <ng-container matColumnDef="group">
+                    <th mat-header-cell *matHeaderCellDef>Grp</th>
+                    <td mat-cell *matCellDef="let r">{{ r.grouping }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="question">
+                    <th mat-header-cell *matHeaderCellDef>Question</th>
+                    <td mat-cell *matCellDef="let r" class="q-cell">{{ r.questionDescription }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="operator">
+                    <th mat-header-cell *matHeaderCellDef>Operator</th>
+                    <td mat-cell *matCellDef="let r">{{ r.operatorShownName }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="value">
+                    <th mat-header-cell *matHeaderCellDef>Value</th>
+                    <td mat-cell *matCellDef="let r">{{ formatValue(r.requirementValue) }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let r">
+                      <button mat-icon-button type="button" (click)="openEditReq(r)"><mat-icon>edit</mat-icon></button>
+                      <button mat-icon-button type="button" color="warn" (click)="deleteReq(r)"><mat-icon>delete</mat-icon></button>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="reqCols"></tr>
+                  <tr mat-row *matRowDef="let r; columns: reqCols;"></tr>
+                  <tr *matNoDataRow>
+                    <td [attr.colspan]="reqCols.length" class="no-data">No requirements yet.</td>
+                  </tr>
+                </table>
+              }
+            }
+            <div class="step-actions">
+              <button mat-button matStepperPrevious>Back</button>
+              <button mat-button mat-dialog-close>Close</button>
+            </div>
+          </div>
+        </mat-step>
+
       </mat-stepper>
     </mat-dialog-content>
   `,
   styles: [`
-    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 480px; padding-top: 16px; }
+    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 560px; padding-top: 16px; }
     .full-width { width: 100%; }
     .row-fields { display: flex; gap: 12px; }
     .row-fields mat-form-field { flex: 1; }
     .step-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .req-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .req-count { font-size: 0.9rem; color: #555; }
+    .req-table { width: 100%; font-size: 0.85rem; }
+    .q-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .no-data { padding: 16px; text-align: center; color: #999; font-size: 0.85rem; }
+    .req-center { display: flex; justify-content: center; padding: 24px; }
+    .hint { color: #888; font-style: italic; }
   `]
 })
 export class ScholarshipDialogComponent {
   private svc = inject(ScholarshipService);
+  private reqSvc = inject(RequirementService);
+  private qSvc = inject(QuestionService);
+  private innerDialog = inject(MatDialog);
+  private snack = inject(MatSnackBar);
   private fb = inject(FormBuilder);
+
   saving = false;
   abstractForm!: ReturnType<FormBuilder['group']>;
   detailsForm!: ReturnType<FormBuilder['group']>;
+
+  requirements = signal<Requirement[]>([]);
+  questions = signal<Question[]>([]);
+  operators = signal<Operator[]>([]);
+  reqLoading = signal(false);
+  reqCols = ['group', 'question', 'operator', 'value', 'actions'];
 
   constructor(
     private dialogRef: MatDialogRef<ScholarshipDialogComponent>,
@@ -146,6 +226,53 @@ export class ScholarshipDialogComponent {
       awardingInformation: [data.scholarship?.awardingInformation ?? ''],
       eligibilityInformation: [data.scholarship?.eligibilityInformation ?? '']
     });
+
+    if (data.scholarship) {
+      this.reqSvc.getOperators().subscribe(o => this.operators.set(o));
+      this.qSvc.getAll().subscribe(q => this.questions.set(q));
+    }
+  }
+
+  onStepChange(e: { selectedIndex: number }) {
+    if (e.selectedIndex === 2 && this.data.scholarship) {
+      this.loadRequirements();
+    }
+  }
+
+  loadRequirements() {
+    this.reqLoading.set(true);
+    this.reqSvc.getAll(this.data.scholarship!.scholarshipId).subscribe({
+      next: r => { this.requirements.set(r); this.reqLoading.set(false); },
+      error: () => this.reqLoading.set(false)
+    });
+  }
+
+  openAddReq() {
+    this.innerDialog.open(RequirementDialogComponent, {
+      data: { requirement: null, scholarshipId: this.data.scholarship!.scholarshipId, questions: this.questions(), operators: this.operators() }
+    }).afterClosed().subscribe(r => { if (r) this.loadRequirements(); });
+  }
+
+  openEditReq(r: Requirement) {
+    this.innerDialog.open(RequirementDialogComponent, {
+      data: { requirement: r, scholarshipId: this.data.scholarship!.scholarshipId, questions: this.questions(), operators: this.operators() }
+    }).afterClosed().subscribe(r => { if (r) this.loadRequirements(); });
+  }
+
+  deleteReq(r: Requirement) {
+    if (!confirm('Delete this requirement?')) return;
+    this.reqSvc.delete(r.scholarshipRequirementId).subscribe({
+      next: () => { this.snack.open('Requirement deleted.', '', { duration: 2500 }); this.loadRequirements(); },
+      error: () => this.snack.open('Cannot delete.', 'Close', { duration: 4000 })
+    });
+  }
+
+  formatValue(v: string): string {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) return parsed.join(', ');
+    } catch { /* not JSON */ }
+    return v;
   }
 
   save() {

@@ -9,8 +9,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RequirementService } from '../../../core/services/requirement.service';
 import { QuestionService } from '../../../core/services/question.service';
+import { ScholarshipService } from '../../../core/services/scholarship.service';
 import { Requirement, Operator } from '../../../core/models/requirement.model';
 import { Question } from '../../../core/models/question.model';
+import { Scholarship } from '../../../core/models/scholarship.model';
 import { RequirementDialogComponent } from '../../../shared/dialogs/requirement-dialog';
 
 @Component({
@@ -28,6 +30,18 @@ import { RequirementDialogComponent } from '../../../shared/dialogs/requirement-
         </button>
       </div>
       <p class="hint">Define eligibility rules. Requirements in the same group are AND'd together; any group being fully true makes the applicant eligible.</p>
+
+      @if (scholarship()?.eligibilityInformation) {
+        <mat-card class="eligibility-card">
+          <mat-card-header>
+            <mat-card-title>Eligibility Information (read-only)</mat-card-title>
+            <mat-card-subtitle>This is the plain-language eligibility description entered on the scholarship.</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="eligibility-text">{{ scholarship()!.eligibilityInformation }}</p>
+          </mat-card-content>
+        </mat-card>
+      }
 
       @if (loading()) {
         <div class="center"><mat-spinner diameter="40" /></div>
@@ -48,7 +62,7 @@ import { RequirementDialogComponent } from '../../../shared/dialogs/requirement-
             </ng-container>
             <ng-container matColumnDef="value">
               <th mat-header-cell *matHeaderCellDef>Value</th>
-              <td mat-cell *matCellDef="let row">{{ row.requirementValue }}</td>
+              <td mat-cell *matCellDef="let row">{{ formatValue(row.requirementValue) }}</td>
             </ng-container>
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef></th>
@@ -75,16 +89,20 @@ import { RequirementDialogComponent } from '../../../shared/dialogs/requirement-
     .full-width { width: 100%; }
     .no-data { padding: 24px; text-align: center; color: #666; }
     .center { display: flex; justify-content: center; padding: 48px; }
+    .eligibility-card { margin-bottom: 24px; background: #f9fbe7; }
+    .eligibility-text { white-space: pre-wrap; margin: 8px 0 0; }
   `]
 })
 export class RequirementsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private svc = inject(RequirementService);
   private qSvc = inject(QuestionService);
+  private scholarshipSvc = inject(ScholarshipService);
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
 
   scholarshipId = '';
+  scholarship = signal<Scholarship | null>(null);
   requirements = signal<Requirement[]>([]);
   questions = signal<Question[]>([]);
   operators = signal<Operator[]>([]);
@@ -93,9 +111,18 @@ export class RequirementsComponent implements OnInit {
 
   ngOnInit() {
     this.scholarshipId = this.route.snapshot.paramMap.get('id') ?? '';
+    this.scholarshipSvc.getById(this.scholarshipId).subscribe(s => this.scholarship.set(s));
     this.svc.getOperators().subscribe(o => this.operators.set(o));
     this.qSvc.getAll().subscribe(q => this.questions.set(q));
     this.load();
+  }
+
+  formatValue(v: string): string {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) return parsed.join(', ');
+    } catch { /* not JSON */ }
+    return v;
   }
 
   load() {
