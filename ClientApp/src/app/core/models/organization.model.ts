@@ -1,8 +1,7 @@
 export interface Organization {
-  id: number;
-  name: string;
-  description?: string;
-  website?: string;
-  contactEmail?: string;
-  createdAt: string;
+  organizationId: string;
+  organizationName: string;
+  contact: string;
+  webSite: string;
+  isPublic: boolean;
 }

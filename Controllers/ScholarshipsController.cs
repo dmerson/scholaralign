@@ -126,6 +126,7 @@ public class ScholarshipsController : ControllerBase
 
         abstract_.ScholarshipName = req.ScholarshipName;
         abstract_.ScholarshipDescription = req.ScholarshipDescription;
+        abstract_.OrganizationId = req.OrganizationId;
         abstract_.SubOrganizationId = req.SubOrganizationId;
         abstract_.UpdatedBy = actor; abstract_.LastModified = now;
 

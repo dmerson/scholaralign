@@ -31,14 +31,14 @@ import { RequirementDialogComponent } from '../../../shared/dialogs/requirement-
       </div>
       <p class="hint">Define eligibility rules. Requirements in the same group are AND'd together; any group being fully true makes the applicant eligible.</p>
 
-      @if (scholarship()?.eligibilityInformation) {
+      @if (scholarship()) {
         <mat-card class="eligibility-card">
           <mat-card-header>
             <mat-card-title>Eligibility Information (read-only)</mat-card-title>
             <mat-card-subtitle>This is the plain-language eligibility description entered on the scholarship.</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
-            <p class="eligibility-text">{{ scholarship()!.eligibilityInformation }}</p>
+            <p class="eligibility-text">{{ scholarship()!.eligibilityInformation || 'No eligibility information has been entered on this scholarship.' }}</p>
           </mat-card-content>
         </mat-card>
       }

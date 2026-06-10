@@ -14,14 +14,18 @@ import { Scholarship, ScholarshipStatus } from '../../core/models/scholarship.mo
 import { AwardYear } from '../../core/models/award-year.model';
 import { Requirement, Operator } from '../../core/models/requirement.model';
 import { Question } from '../../core/models/question.model';
+import { Organization } from '../../core/models/organization.model';
+import { SubOrganization } from '../../core/models/sub-organization.model';
 import { ScholarshipService } from '../../core/services/scholarship.service';
 import { RequirementService } from '../../core/services/requirement.service';
 import { QuestionService } from '../../core/services/question.service';
+import { SubOrganizationService } from '../../core/services/sub-organization.service';
 import { RequirementDialogComponent } from './requirement-dialog';
 
 export interface ScholarshipDialogData {
   scholarship: Scholarship | null;
   organizationId: string;
+  organizations: Organization[];
   awardYears: AwardYear[];
   statuses: ScholarshipStatus[];
 }
@@ -49,6 +53,26 @@ export interface ScholarshipDialogData {
               @if (abstractForm.get('scholarshipDescription')?.hasError('required')) {
                 <mat-error>Required</mat-error>
               }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Organization</mat-label>
+              <mat-select formControlName="organizationId">
+                @for (o of data.organizations; track o.organizationId) {
+                  <mat-option [value]="o.organizationId">{{ o.organizationName }}</mat-option>
+                }
+              </mat-select>
+              @if (abstractForm.get('organizationId')?.hasError('required')) {
+                <mat-error>Required</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Suborganization (optional)</mat-label>
+              <mat-select formControlName="subOrganizationId">
+                <mat-option [value]="null">— None —</mat-option>
+                @for (s of subOrgs(); track s.subOrganizationId) {
+                  <mat-option [value]="s.subOrganizationId">{{ s.subOrganizationName }}</mat-option>
+                }
+              </mat-select>
             </mat-form-field>
             <div class="step-actions">
               <button mat-button mat-dialog-close>Cancel</button>
@@ -175,7 +199,7 @@ export interface ScholarshipDialogData {
     </mat-dialog-content>
   `,
   styles: [`
-    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 560px; padding-top: 16px; }
+    .step-form { display: flex; flex-direction: column; gap: 8px; min-width: 700px; padding-top: 16px; }
     .full-width { width: 100%; }
     .row-fields { display: flex; gap: 12px; }
     .row-fields mat-form-field { flex: 1; }
@@ -183,7 +207,7 @@ export interface ScholarshipDialogData {
     .req-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .req-count { font-size: 0.9rem; color: #555; }
     .req-table { width: 100%; font-size: 0.85rem; }
-    .q-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .q-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .no-data { padding: 16px; text-align: center; color: #999; font-size: 0.85rem; }
     .req-center { display: flex; justify-content: center; padding: 24px; }
     .hint { color: #888; font-style: italic; }
@@ -193,6 +217,7 @@ export class ScholarshipDialogComponent {
   private svc = inject(ScholarshipService);
   private reqSvc = inject(RequirementService);
   private qSvc = inject(QuestionService);
+  private subOrgSvc = inject(SubOrganizationService);
   private innerDialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
   private fb = inject(FormBuilder);
@@ -204,6 +229,7 @@ export class ScholarshipDialogComponent {
   requirements = signal<Requirement[]>([]);
   questions = signal<Question[]>([]);
   operators = signal<Operator[]>([]);
+  subOrgs = signal<SubOrganization[]>([]);
   reqLoading = signal(false);
   reqCols = ['group', 'question', 'operator', 'value', 'actions'];
 
@@ -211,9 +237,12 @@ export class ScholarshipDialogComponent {
     private dialogRef: MatDialogRef<ScholarshipDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ScholarshipDialogData
   ) {
+    const initOrgId = data.scholarship?.organizationId ?? data.organizationId;
     this.abstractForm = this.fb.group({
       scholarshipName: [data.scholarship?.scholarshipName ?? '', [Validators.required, Validators.maxLength(200)]],
-      scholarshipDescription: [data.scholarship?.scholarshipDescription ?? '', [Validators.required, Validators.maxLength(8000)]]
+      scholarshipDescription: [data.scholarship?.scholarshipDescription ?? '', [Validators.required, Validators.maxLength(8000)]],
+      organizationId: [initOrgId, Validators.required],
+      subOrganizationId: [data.scholarship?.subOrganizationId ?? null]
     });
     this.detailsForm = this.fb.group({
       awardYearId: [data.scholarship?.awardYearId ?? null],
@@ -225,6 +254,18 @@ export class ScholarshipDialogComponent {
       scholarshipUrl: [data.scholarship?.scholarshipUrl ?? ''],
       awardingInformation: [data.scholarship?.awardingInformation ?? ''],
       eligibilityInformation: [data.scholarship?.eligibilityInformation ?? '']
+    });
+
+    if (initOrgId) {
+      this.subOrgSvc.getAll(initOrgId).subscribe(s => this.subOrgs.set(s));
+    }
+
+    this.abstractForm.get('organizationId')!.valueChanges.subscribe((orgId: string) => {
+      this.subOrgs.set([]);
+      this.abstractForm.get('subOrganizationId')!.setValue(null);
+      if (orgId) {
+        this.subOrgSvc.getAll(orgId).subscribe(s => this.subOrgs.set(s));
+      }
     });
 
     if (data.scholarship) {
@@ -280,9 +321,7 @@ export class ScholarshipDialogComponent {
     this.saving = true;
     const payload = {
       ...this.abstractForm.value,
-      ...this.detailsForm.value,
-      organizationId: this.data.organizationId,
-      subOrganizationId: this.data.scholarship?.subOrganizationId ?? null
+      ...this.detailsForm.value
     };
     const obs = this.data.scholarship
       ? this.svc.update(this.data.scholarship.scholarshipId, payload as Partial<Scholarship>)
